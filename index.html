@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Image Compressor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Roboto+Condensed:wght@300;400;700&display=swap');
+      
+      body {
+        font-family: 'Poppins', sans-serif;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+    </style>
+  </head>
+  <body class="bg-gray-900 min-h-screen flex items-center justify-center text-white">
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg text-center animate-fadeIn">
+      <h1 class="text-2xl font-bold text-white mb-4">Image Compressor</h1>
+      <div id="drop-area" class="border-4 border-dashed border-gray-600 p-6 rounded-lg cursor-pointer bg-gray-700 hover:bg-gray-600 transition transform hover:scale-105">
+        <p class="text-gray-300">Drag & drop an image or click to select</p>
+        <input type="file" id="file-input" class="hidden" accept="image/*" />
+      </div>
+      <div class="mt-4">
+        <label class="block text-gray-400">Output Format:</label>
+        <select id="format" class="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white">
+          <option value="image/jpeg">JPEG</option>
+          <option value="image/png">PNG</option>
+          <option value="image/webp">WebP</option>
+        </select>
+      </div>
+      <div id="loading" class="hidden text-blue-300 mt-4 animate-pulse">Compressing...</div>
+      <div class="mt-4">
+        <img id="compressed-preview" class="w-full rounded border border-gray-600 hidden animate-fadeIn shadow-lg" />
+        <p id="compressed-info" class="text-sm text-gray-400 mt-2"></p>
+      </div>
+      <button id="download-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded transition transform hover:scale-105 hidden">Download</button>
+      <button id="reset-btn" class="mt-4 px-4 py-2 bg-red-600 text-white rounded transition transform hover:scale-105 hidden">New Image</button>
+    </div>
+    <script>
+      const fileInput = document.getElementById("file-input");
+      const dropArea = document.getElementById("drop-area");
+      const formatSelect = document.getElementById("format");
+      const compressedPreview = document.getElementById("compressed-preview");
+      const compressedInfo = document.getElementById("compressed-info");
+      const downloadBtn = document.getElementById("download-btn");
+      const loading = document.getElementById("loading");
+      const resetBtn = document.getElementById("reset-btn");
+      
+      dropArea.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", () => handleFile(fileInput.files[0]));
+      
+      function handleFile(file) {
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+          alert("Only image files are allowed.");
+          return;
+        }
+        if (file.size > 15 * 1024 * 1024) {
+          alert("File size exceeds 15MB limit.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => compressImage(img, file);
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      function compressImage(img, file) {
+        loading.classList.remove("hidden");
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const format = formatSelect.value;
+        canvas.toBlob((blob) => {
+          loading.classList.add("hidden");
+          if (!blob) {
+            alert("Compression failed. Please try again.");
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          compressedPreview.src = url;
+          compressedPreview.classList.remove("hidden");
+          compressedInfo.textContent = `Size: ${(blob.size / 1024).toFixed(2)} KB`;
+          downloadBtn.classList.remove("hidden");
+          resetBtn.classList.remove("hidden");
+          downloadBtn.onclick = () => {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `compressed.${format.split("/")[1]}`;
+            a.click();
+          };
+        }, format);
+      }
+      
+      resetBtn.addEventListener("click", () => {
+        fileInput.value = "";
+        compressedPreview.classList.add("hidden");
+        compressedPreview.src = "";
+        compressedInfo.textContent = "";
+        downloadBtn.classList.add("hidden");
+        resetBtn.classList.add("hidden");
+      });
+    </script>
+  </body>
+</html>
